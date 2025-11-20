@@ -1,5 +1,44 @@
 from collections import deque
 
+class Node:
+    def __init__(self,val):
+        self.value = val
+        self.next = None
+
+class linkedlist:
+    def __init__(self):
+        self.head = None
+    
+    def themCuoi(self, val):
+        new_node = Node(val)
+        if(self.head == None):
+            self.head = new_node
+            return
+        cur = self.head
+        while(cur.next != None):
+            cur = cur.next
+        cur.next = new_node
+    
+    def hienThi(self):
+        p = self.head
+        while(p !=None):
+            print(f"{p.value}->",end='')
+            p=p.next
+            if(p== None):
+                print(f"NULL")
+    
+    def layNode(self, val):
+        p = self.head
+        if(p == None):
+            return
+        while(p.next != None and p != None):
+            if(p.value == val):
+                return val
+            p = p.next
+        return None
+#####
+#sua danh sach ke truoc
+
 
 def canh_to_matran(n, canh, vo_huong=True):
     ma_tran = [[0]*n for _ in range(n)]
@@ -15,11 +54,11 @@ def canh_to_matran(n, canh, vo_huong=True):
     return ma_tran
 
 def matran_to_dsk(n, ma_tran):
-    dsk = [[] for _ in range(n)]
+    dsk = [linkedlist() for _ in range(n)]
     for i in range(n):
         for j in range(n):
             if ma_tran[i][j] != 0:
-                dsk[i].append(j+1)
+                dsk[i].themCuoi(j+1)
     return dsk
 
 def dsk_to_matran(n, dsk, vo_huong=True):
@@ -55,15 +94,15 @@ def dsk_to_canh(n, dsk, vo_huong=True):
     return canh
 
 def canh_to_dsk(n, canh, vo_huong=True):
-    dsk = [[] for _ in range(n)]
+    dsk = [linkedlist() for _ in range(n)]
     for edge in canh:
         if len(edge) == 2:
             u, v = edge
         else:
             u, v, w = edge
-        dsk[u-1].append(v)
+        dsk[u-1].themCuoi(v)
         if vo_huong:
-            dsk[v-1].append(u)
+            dsk[v-1].themCuoi(u)
     return dsk
 
 #duyet do thi
@@ -154,8 +193,9 @@ def main():
             print(row)
 
         print("\n>>> Danh sách kề:")
-        for i in range(n):
-            print(f"{i+1}: {' '.join(map(str,dsk[i]))}")
+        for i in dsk:
+            i.hienThi()
+            
 
         print("\n>>> Danh sách cạnh:")
         for edge in canh:
