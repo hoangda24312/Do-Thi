@@ -113,8 +113,10 @@ def canh_to_dsk(n, canh, vo_huong=True):
             dsk[v-1].themCuoi(u)
     return dsk
 
+
+
 #duyet do thi
-def hasPath(matran, u,v):  #ma tran ke
+def hasPathMTK_DFS(matran, u,v):  #ma tran ke
     n = len(matran)
     visited = [False]*n
     
@@ -129,7 +131,7 @@ def hasPath(matran, u,v):  #ma tran ke
         return False
     return path(u)
 
-def hasPathBFS(matran, u,v):
+def hasPathMTK_BFS(matran, u,v):
     n = len(matran)
     visited = [False]*n
     queue = deque([u])
@@ -143,8 +145,52 @@ def hasPathBFS(matran, u,v):
                 visited[i] = True
                 queue.append(i)
     return False
-    
 
+def hasPathDSK_DFS(ds, u, v):
+    n = len(ds)
+    visited = [False]*n
+
+    def depth(cur):
+        if(cur == v):
+            return True
+        visited[cur] = True
+        current_node = ds[cur].head
+        while current_node != None:
+            neighbor = current_node.value
+            if(visited[neighbor] != True):
+                if(depth(neighbor)):
+                    return True
+        current_node = current_node.next
+        return False
+    return depth(u)
+
+def hasPathDSK_BFS(ds, u ,v):
+    n = len(ds)
+    visited = [False]*n
+    queue = deque([u])
+
+    while queue:
+        cur = queue.popleft()
+        if cur == v:
+            return True
+        current_node = ds[cur].head
+        while current_node != None:
+            neighbor = current_node.value
+            if visited[neighbor] != True:
+                visited[neighbor] = True
+                queue.append(cur)
+            current_node = current_node.next
+    return False
+
+
+        
+
+                
+
+
+
+
+############################
 
 
 
