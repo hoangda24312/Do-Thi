@@ -31,11 +31,18 @@ class linkedlist:
         p = self.head
         if(p == None):
             return
-        while(p.next != None and p != None):
+        while(p != None):
             if(p.value == val):
-                return val
+                return p.value
             p = p.next
         return None
+    def toList(self):
+        p = self.head
+        ds = []
+        while p!= None:
+            ds.append(p.value)
+            p =p.next
+        return ds
 #####
 #sua danh sach ke truoc
 
@@ -64,10 +71,11 @@ def matran_to_dsk(n, ma_tran):
 def dsk_to_matran(n, dsk, vo_huong=True):
     ma_tran = [[0]*n for _ in range(n)]
     for i in range(n):
-        for v in dsk[i]:
-            ma_tran[i][v-1] = 1
-            if vo_huong:
-                ma_tran[v-1][i] = 1
+        for v in dsk[i].toList():
+                ma_tran[i][v-1] = 1
+                if vo_huong:
+                    ma_tran[v-1][i] = 1
+            
     return ma_tran
 
 def matran_to_canh(n, ma_tran, vo_huong=True):
@@ -85,12 +93,12 @@ def matran_to_canh(n, ma_tran, vo_huong=True):
 def dsk_to_canh(n, dsk, vo_huong=True):
     canh = []
     for i in range(n):
-        for v in dsk[i]:
-            if vo_huong:
-                if i+1 < v:  # tránh lặp
-                    canh.append((i+1,v))
+        for v in dsk[i].toList():
+            if i+1 < v:
+                canh.append((i+1,v))
             else:
                 canh.append((i+1,v))
+            
     return canh
 
 def canh_to_dsk(n, canh, vo_huong=True):
@@ -124,14 +132,14 @@ def hasPath(matran, u,v):  #ma tran ke
 def hasPathBFS(matran, u,v):
     n = len(matran)
     visited = [False]*n
-    queue = deque[u]
+    queue = deque([u])
     visited[u] = True
-    while queue != None:
+    while queue:
         tam = queue.popleft()
         if(tam == v):
             return True
         for i in range(n):
-            if(matran[tam][i] != 0 and visited[i] != False):
+            if(matran[tam][i] != 0 and visited[i] != True):
                 visited[i] = True
                 queue.append(i)
     return False
@@ -178,28 +186,35 @@ def main():
             dsk = matran_to_dsk(n, matran)
 
         elif choice == '3':
-            dsk = [[] for _ in range(n)]
+            dsk = [linkedlist() for _ in range(n)]
+            m = int(input("Nhap so canh:"))
             print("Nhập danh sách kề: mỗi dòng là các đỉnh kề (vd: 2 5 6)")
-            for i in range(n):
-                line = input(f"Đỉnh {i+1}: ").strip()
-                if line:
-                    dsk[i] = list(map(int, line.split()))
+            for _ in range(m):
+                u,v = map(int,input("Nhap canh (u,v): ").split())
+                dsk[u-1].themCuoi(v)
+                if vo_huong:
+                    dsk[v-1].themCuoi(u) 
+                 
 
             matran = dsk_to_matran(n, dsk, vo_huong)
             canh = dsk_to_canh(n, dsk, vo_huong)
+        
+        k = input("ban co muon in do thi ra khong (y/n): " )
+        
+        if k== 'y':
 
-        print("\n>>> Ma trận kề:")
-        for row in matran:
-            print(row)
+            print("\n>>> Ma trận kề:")
+            for row in matran:
+                print(row)
 
-        print("\n>>> Danh sách kề:")
-        for i in dsk:
-            i.hienThi()
-            
+            print("\n>>> Danh sách kề:")
+            for i in dsk:
+                i.hienThi()
+                
 
-        print("\n>>> Danh sách cạnh:")
-        for edge in canh:
-            print(*edge)
+            print("\n>>> Danh sách cạnh:")
+            for edge in canh:
+                print(*edge)
 
         print("\n-----------------------------------------\n")
 
