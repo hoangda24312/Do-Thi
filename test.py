@@ -43,6 +43,20 @@ class linkedlist:
             ds.append(p.value)
             p =p.next
         return ds
+    
+    def xoaNode(self, val):
+        if self.head == None:
+            return
+        while self.head != None and self.head == val:
+            self.head = self.head.next
+        p = self.head
+        while(p!=None and p.next != None):
+            if(p.next.value == val):
+                q= p.next
+                p.next = q.next
+                del q
+            else:
+                p = p.next
 #####
 #sua danh sach ke truoc
 
@@ -182,11 +196,25 @@ def hasPathDSK_BFS(ds, u ,v):
             current_node = current_node.next
     return False
 
+#############################
+#chu trinh euler va hamilton
 
-        
-
-                
-
+def chuTrinhEuler(dsk,u, vo_huong = True): #u la dinh bat ki
+    stack = deque([u])
+    EC = [] #chu trinh euler
+    while stack:
+        top = stack[-1]  #lay dinh tren cung
+        ds = dsk[top-1].toList()
+        if len(ds) > 0:
+            neighbor = ds[0] #canh dau tien
+            stack.append(neighbor)
+            dsk[top-1].xoaNode(neighbor)
+            if vo_huong:
+                dsk[neighbor-1].xoaNode(top)
+        else:
+            top = stack.pop()
+            EC.append(top)
+    return EC
 
 
 
