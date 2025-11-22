@@ -216,6 +216,31 @@ def chuTrinhEuler(dsk,u, vo_huong = True): #u la dinh bat ki
             EC.append(top)
     return EC
 
+def quayLui(matran, path, visited,k):
+    for i in range(len(matran)):
+        if(matran[path[k-1]][i] == 1 and visited[i] != True):
+            path[k] = i
+            visited[i] = True
+            if(k == len(matran)-1):
+                if(matran[path[k]][path[0]] == 1):
+                    chu_trinh = path + [path[0]]
+                    print("chu trinh hamilton tim duoc:", chu_trinh)
+            else:
+                quayLui(matran,path,visited,k+1)
+            visited[i] = False
+            path[k] = 0
+
+
+
+
+def chuTrinhHamilton(matran,u,vo_huong = True):
+    n = len(matran)
+    path = [0 for _ in range(n)]
+    visited = [False for _ in range(n)]
+    path[0] = u
+    visited[u] = True
+    quayLui(matran,path,visited,1)
+
 
 
 ############################
@@ -228,10 +253,12 @@ def main():
         print("1. Nhập danh sách cạnh")
         print("2. Nhập ma trận kề")
         print("3. Nhập danh sách kề")
-        print("4. Thoát")
+        print("4. In ra chu trình euler")
+        print("5.Chu trinh hamilton")
+        print("6. Thoát")
         choice = input("Chọn kiểu nhập: ")
 
-        if choice == '4':
+        if choice == '6':
             print("Thoát chương trình.")
             break
 
@@ -272,6 +299,21 @@ def main():
 
             matran = dsk_to_matran(n, dsk, vo_huong)
             canh = dsk_to_canh(n, dsk, vo_huong)
+        
+        elif choice == '4':
+            if(dsk == None):
+                print("Ban chua nhap danh sach ke")
+            else:
+                start = int(input("Nhap dinh bat dau:"))
+                print(chuTrinhEuler(dsk,start,vo_huong))
+        
+        elif choice == '5':
+            if(matran == None):
+                print("ban chua nhap ma tran")
+            else:
+                start = int(input("Nhap dinh bat dau u-1 (neu la dinh 2 thi nhap 1):"))
+                chuTrinhHamilton(matran,start,vo_huong)
+            
         
         k = input("ban co muon in do thi ra khong (y/n): " )
         
