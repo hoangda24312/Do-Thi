@@ -83,7 +83,7 @@ def canh_to_matran(n, canh, vo_huong=True):
             ma_tran[v-1][u-1] = w
     return ma_tran
 
-def matran_to_dsk(n, ma_tran, check_trong_so):
+def matran_to_dsk(n, ma_tran, check_trong_so=False):
     dsk = [linkedlist() for _ in range(n)]
     if check_trong_so == True:
         for i in range(n):
@@ -97,7 +97,7 @@ def matran_to_dsk(n, ma_tran, check_trong_so):
                     dsk[i].themCuoi(j+1)
     return dsk
 
-def dsk_to_matran(n, dsk,check_trong_so, vo_huong=True):
+def dsk_to_matran(n, dsk,check_trong_so=False, vo_huong=True):
     ma_tran = [[0]*n for _ in range(n)]
     if check_trong_so == True:
         for i in range(n):
@@ -113,7 +113,7 @@ def dsk_to_matran(n, dsk,check_trong_so, vo_huong=True):
                     ma_tran[v-1][i] = 1
     return ma_tran
 
-def matran_to_canh(n, ma_tran,check_trong_so, vo_huong=True):
+def matran_to_canh(n, ma_tran,check_trong_so=False, vo_huong=True):
     canh = []
     if check_trong_so==True:
         for i in range(n):
@@ -135,14 +135,22 @@ def matran_to_canh(n, ma_tran,check_trong_so, vo_huong=True):
                         canh.append((i+1,j+1))
     return canh
 
-def dsk_to_canh(n, dsk, vo_huong=True):
+def dsk_to_canh(n, dsk,check_trong_so = False, vo_huong=True):
     canh = []
-    for i in range(n):
-        for v in dsk[i].toList():
-            if i+1 < v:
-                canh.append((i+1,v))
-            else:
-                canh.append((i+1,v))
+    if check_trong_so == True:
+        for i in range(n):
+            for v,w in dsk[i].toListTrongSo():
+                if i+1 < v:
+                    canh.append((i+1,v,w))
+                else:
+                    canh.append((i+1,v,w))
+    else:
+        for i in range(n):
+            for v in dsk[i].toList():
+                if i+1 < v:
+                    canh.append((i+1,v))
+                else:
+                    canh.append((i+1,v))
             
     return canh
 
