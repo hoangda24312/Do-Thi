@@ -314,12 +314,13 @@ def main():
                 check = input("Ma trận có trọng số không ? y/n")
                 m = int(input("Nhập số cạnh: "))
                 canh = []
-                print("Nhập cạnh dạng: u v")
                 if check == 'y':
+                    print("Nhập cạnh dạng: u v w")
                     for i in range(m):
                         u, v,w = map(int, input(f"Cạnh {i+1}: ").split())
                         canh.append((u,v,w))
                 else:
+                    print("Nhập cạnh dạng: u v")
                     for i in range(m):
                         u, v = map(int, input(f"Cạnh {i+1}: ").split())
                         canh.append((u,v))
@@ -329,27 +330,42 @@ def main():
 
             elif choice_DanhSach == '2':
                 print("Nhập ma trận kề (0 là không có cạnh, 1 là có cạnh):")
+                check = input("Ma trận có trọng số không ? y/n")
                 matran = []
+                if check == 'y':
+                    check_trong_so = True
+                else:
+                    check_trong_so = False
                 for i in range(n):
                     row = list(map(int, input(f"Dòng {i+1}: ").split()))
                     matran.append(row)
 
-                canh = matran_to_canh(n, matran, vo_huong)
-                dsk = matran_to_dsk(n, matran)
+                canh = matran_to_canh(n, matran,check_trong_so, vo_huong)
+                dsk = matran_to_dsk(n, matran,check_trong_so)
 
             elif choice_DanhSach == '3':
                 dsk = [linkedlist() for _ in range(n)]
+                check = input("Ma trận có trọng số không ? y/n")
                 m = int(input("Nhap so canh:"))
-                print("Nhập danh sách kề: mỗi dòng là các đỉnh kề (vd: 2 5 6)")
-                for _ in range(m):
-                    u,v = map(int,input("Nhap canh (u,v): ").split())
-                    dsk[u-1].themCuoi(v)
-                    if vo_huong:
-                        dsk[v-1].themCuoi(u) 
+                print("Nhập danh sách kề: mỗi dòng là các đỉnh kề (vd: 2 5, 2 4)")
+                if check == 'y':
+                    for _ in range(m):
+                        u,v,w = map(int,input("Nhap canh (u,v,w): ").split())
+                        dsk[u-1].themCuoi(v,w)
+                        if vo_huong:
+                            dsk[v-1].themCuoi(u,w) 
+                    check_trong_so = True
+                else:
+                    for _ in range(m):
+                        u,v = map(int,input("Nhap canh (u,v): ").split())
+                        dsk[u-1].themCuoi(v)
+                        if vo_huong:
+                            dsk[v-1].themCuoi(u) 
+                    check_trong_so = False
                     
 
-                matran = dsk_to_matran(n, dsk, vo_huong)
-                canh = dsk_to_canh(n, dsk, vo_huong)
+                matran = dsk_to_matran(n, dsk,check_trong_so, vo_huong)
+                canh = dsk_to_canh(n, dsk,check_trong_so, vo_huong)
         
         elif choice == '4':
             if(dsk == None):
