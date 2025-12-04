@@ -1,16 +1,17 @@
 from collections import deque
 
 class Node:
-    def __init__(self,val):
+    def __init__(self,val,W = 0):
         self.value = val
+        self.trong_so = W
         self.next = None
 
 class linkedlist:
     def __init__(self):
         self.head = None
     
-    def themCuoi(self, val):
-        new_node = Node(val)
+    def themCuoi(self, val,W=0):
+        new_node = Node(val,W)
         if(self.head == None):
             self.head = new_node
             return
@@ -44,6 +45,14 @@ class linkedlist:
             p =p.next
         return ds
     
+    def toListTrongSo(self):
+        p = self.head
+        ds = []
+        while p!= None:
+            ds.append((p.value,p.trong_so))
+            p =p.next
+        return ds
+    
     def xoaNode(self, val):
         if self.head == None:
             return
@@ -74,34 +83,56 @@ def canh_to_matran(n, canh, vo_huong=True):
             ma_tran[v-1][u-1] = w
     return ma_tran
 
-def matran_to_dsk(n, ma_tran):
+def matran_to_dsk(n, ma_tran, check_trong_so):
     dsk = [linkedlist() for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            if ma_tran[i][j] != 0:
-                dsk[i].themCuoi(j+1)
+    if check_trong_so == True:
+        for i in range(n):
+            for j in range(n):
+                if ma_tran[i][j] != 0:
+                    dsk[i].themCuoi(j+1,ma_tran[i][j])
+    else:
+        for i in range(n):
+            for j in range(n):
+                if ma_tran[i][j] != 0:
+                    dsk[i].themCuoi(j+1)
     return dsk
 
-def dsk_to_matran(n, dsk, vo_huong=True):
+def dsk_to_matran(n, dsk,check_trong_so, vo_huong=True):
     ma_tran = [[0]*n for _ in range(n)]
+    if check_trong_so == True:
+        for i in range(n):
+            for v,w in dsk[i].toListTrongSo():
+                    ma_tran[i][v-1] = w
+                    if vo_huong:
+                        ma_tran[v-1][i] = w
+
     for i in range(n):
         for v in dsk[i].toList():
                 ma_tran[i][v-1] = 1
                 if vo_huong:
                     ma_tran[v-1][i] = 1
-            
     return ma_tran
 
-def matran_to_canh(n, ma_tran, vo_huong=True):
+def matran_to_canh(n, ma_tran,check_trong_so, vo_huong=True):
     canh = []
-    for i in range(n):
-        for j in range(n):
-            if ma_tran[i][j] != 0:
-                if vo_huong:
-                    if i < j:  # tránh lặp lại trong vô hướng
+    if check_trong_so==True:
+        for i in range(n):
+            for j in range(n):
+                if ma_tran[i][j] != 0:
+                    if vo_huong:
+                        if i < j:  # tránh lặp lại trong vô hướng
+                            canh.append((i+1,j+1,ma_tran[i][j]))
+                    else:
+                        canh.append((i+1,j+1,ma_tran[i][j]))
+    else:
+        for i in range(n):
+            for j in range(n):
+                if ma_tran[i][j] != 0:
+                    if vo_huong:
+                        if i < j:  # tránh lặp lại trong vô hướng
+                            canh.append((i+1,j+1))
+                    else:
                         canh.append((i+1,j+1))
-                else:
-                    canh.append((i+1,j+1))
     return canh
 
 def dsk_to_canh(n, dsk, vo_huong=True):
@@ -122,9 +153,9 @@ def canh_to_dsk(n, canh, vo_huong=True):
             u, v = edge
         else:
             u, v, w = edge
-        dsk[u-1].themCuoi(v)
+        dsk[u-1].themCuoi(v,w)
         if vo_huong:
-            dsk[v-1].themCuoi(u)
+            dsk[v-1].themCuoi(u,w)
     return dsk
 
 
@@ -245,14 +276,15 @@ def chuTrinhHamilton(matran,u,vo_huong = True):
 
 ############################
 
+#Cho nhập ma trận chưa có trọng số trước->thêm dần tìm kiếm->chỉnh sửa lại cho trọng số->
 
 
+#thay đổi 1: Thêm trọng số vào class danh sách liên kết và sửa các hàm để nhận trọng số trong vài trường hợp
 def main():
     while True:
         print("\n===== CHUYỂN ĐỔI BIỂU DIỄN ĐỒ THỊ VÔ TRỌNG SỐ =====")
-        print("1. Nhập danh sách cạnh")
-        print("2. Nhập ma trận kề")
-        print("3. Nhập danh sách kề")
+        #dồn các danh sách vào 1 lựa chọn và cho người dùng chọn
+        print("1. Nhập danh sách")
         print("4. In ra chu trình euler")
         print("5.Chu trinh hamilton")
         print("6. Thoát")
@@ -266,39 +298,50 @@ def main():
         vo_huong = input("Đồ thị vô hướng? (y/n): ") == 'y'
 
         if choice == '1':
-            m = int(input("Nhập số cạnh: "))
-            canh = []
-            print("Nhập cạnh dạng: u v")
-            for i in range(m):
-                u, v = map(int, input(f"Cạnh {i+1}: ").split())
-                canh.append((u,v))
+            print("1. Nhập danh sách cạnh")
+            print("2. Nhập ma trận kề")
+            print("3. Nhập danh sách kề")
+            choice_DanhSach = input("bạn muốn dùng danh sách nào ?")
+            if choice_DanhSach =='1':
+                check = input("Ma trận có trọng số không ? y/n")
+                m = int(input("Nhập số cạnh: "))
+                canh = []
+                print("Nhập cạnh dạng: u v")
+                if check == 'y':
+                    for i in range(m):
+                        u, v,w = map(int, input(f"Cạnh {i+1}: ").split())
+                        canh.append((u,v,w))
+                else:
+                    for i in range(m):
+                        u, v = map(int, input(f"Cạnh {i+1}: ").split())
+                        canh.append((u,v))
 
-            matran = canh_to_matran(n, canh, vo_huong)
-            dsk = canh_to_dsk(n, canh, vo_huong)
+                matran = canh_to_matran(n, canh, vo_huong)
+                dsk = canh_to_dsk(n, canh, vo_huong)
 
-        elif choice == '2':
-            print("Nhập ma trận kề (0 là không có cạnh, 1 là có cạnh):")
-            matran = []
-            for i in range(n):
-                row = list(map(int, input(f"Dòng {i+1}: ").split()))
-                matran.append(row)
+            elif choice_DanhSach == '2':
+                print("Nhập ma trận kề (0 là không có cạnh, 1 là có cạnh):")
+                matran = []
+                for i in range(n):
+                    row = list(map(int, input(f"Dòng {i+1}: ").split()))
+                    matran.append(row)
 
-            canh = matran_to_canh(n, matran, vo_huong)
-            dsk = matran_to_dsk(n, matran)
+                canh = matran_to_canh(n, matran, vo_huong)
+                dsk = matran_to_dsk(n, matran)
 
-        elif choice == '3':
-            dsk = [linkedlist() for _ in range(n)]
-            m = int(input("Nhap so canh:"))
-            print("Nhập danh sách kề: mỗi dòng là các đỉnh kề (vd: 2 5 6)")
-            for _ in range(m):
-                u,v = map(int,input("Nhap canh (u,v): ").split())
-                dsk[u-1].themCuoi(v)
-                if vo_huong:
-                    dsk[v-1].themCuoi(u) 
-                 
+            elif choice_DanhSach == '3':
+                dsk = [linkedlist() for _ in range(n)]
+                m = int(input("Nhap so canh:"))
+                print("Nhập danh sách kề: mỗi dòng là các đỉnh kề (vd: 2 5 6)")
+                for _ in range(m):
+                    u,v = map(int,input("Nhap canh (u,v): ").split())
+                    dsk[u-1].themCuoi(v)
+                    if vo_huong:
+                        dsk[v-1].themCuoi(u) 
+                    
 
-            matran = dsk_to_matran(n, dsk, vo_huong)
-            canh = dsk_to_canh(n, dsk, vo_huong)
+                matran = dsk_to_matran(n, dsk, vo_huong)
+                canh = dsk_to_canh(n, dsk, vo_huong)
         
         elif choice == '4':
             if(dsk == None):
