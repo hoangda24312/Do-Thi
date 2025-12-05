@@ -1,4 +1,5 @@
 from collections import deque
+import heapq
 
 class Node:
     def __init__(self,val,W = 0):
@@ -279,6 +280,29 @@ def chuTrinhHamilton(matran,u,vo_huong = True):
     path[0] = u
     visited[u] = True
     quayLui(matran,path,visited,1)
+
+##################################
+#cac thuat toan nang cao
+#kruskal thì chọn những cái nhỏ nhất rồi bỏ vào, không cần thiết phải kề với đỉnh trong cây, miễn là nó không tạo thành chu trình
+#prim thì chọn cái nhỏ nhất rồi mở rộng vùng từ từ, nói cách khác các cạnh có trọng số nhỏ nhất phải kề với đỉnh đã có trong cây
+#7.1 Thuat toan Prim
+"""
+Bắt đầu từ một đỉnh bất kỳ
+Đưa toàn bộ cạnh kề vào heap
+
+Mỗi lần lấy ra cạnh nhỏ nhất
+
+Nếu nối vào một đỉnh mới → nhận
+
+Thêm các cạnh từ đỉnh mới vào heap
+
+Lặp lại đến khi có đủ n-1 cạnh
+"""
+def Prim(dsk):
+
+
+
+
 
 
 
