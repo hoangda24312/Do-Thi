@@ -1,5 +1,8 @@
 from collections import deque
 import heapq
+import networkx as nx
+import matplotlib.pyplot as plt
+
 
 class Node:
     def __init__(self,val,W = 0):
@@ -68,6 +71,84 @@ class linkedlist:
             else:
                 p = p.next
 #####
+
+class DSU:
+    def __init__(self,n):
+        self.parent = list(range(n))
+        self.rank = [0]*n
+    
+    def find(self,x):
+        if(self.parent[x] != x):
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    #union bản nâng cấp có rank
+    def union(self,x,y):
+        xr,yr = self.find(x), self.find(y)
+        if xr==yr: return False
+        if(self.rank[xr] < self.rank[yr]):
+            self.parent[xr] = yr
+        elif (self.rank[yr] < self.rank[xr]):
+            self.parent[yr] = xr
+        else:
+            self.parent[yr] = xr
+            self.rank[xr]+=1
+        return True
+######
+def veDSC(canh, n, vo_huong=True, check_trong_so=False):
+    if vo_huong:
+        G = nx.Graph()
+    else:
+        G = nx.DiGraph()
+
+    G.add_nodes_from(range(1, n + 1))
+
+    edge_labels = {}
+    if check_trong_so:
+        # Trường hợp CÓ TRỌNG SỐ: Cạnh là (u, v, w)
+        G.add_weighted_edges_from(canh)
+        edge_labels = {(u, v): w for u, v, w in canh}
+    else:
+        # Lọc lại danh sách cạnh để chỉ lấy 2 phần tử đầu tiên (u, v)
+        canh_vo_trong_so = [(edge[0], edge[1]) for edge in canh]
+        G.add_edges_from(canh_vo_trong_so) 
+
+    # Cấu hình vị trí các nút
+    pos = nx.spring_layout(G) 
+
+    # Vẽ nút và cạnh
+    plt.figure(figsize=(10, 7))
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=1500, font_size=10)
+
+    if check_trong_so and edge_labels:
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red') 
+    
+    plt.title("Trực quan hóa đồ thị")
+    plt.show()
+
+#kiểm tra đồ thị có phải 2 phía không
+def checkBipartiesDSK(dsk, n):
+    color = [-1]*n
+    for i in range(n):
+        if color[i] == -1:
+            queue = deque([i])
+            color[i] = 0
+            while queue:
+                u = queue.popleft()
+                neighbor = dsk[u].toList()
+                for v in neighbor:
+                    v_idx = v-1
+                    if v_idx < 0 or v_idx >= n:
+                        print(f"Cảnh báo: Đỉnh {v} nằm ngoài phạm vi 1 đến {n}.")
+                        continue
+                    if(color[v_idx] == -1):
+                        color[v_idx] = 1-color[u]
+                        queue.append(v)
+                    elif(color[v_idx] == color[u]):
+                        return False
+    return True
+
+
+
 #sua danh sach ke truoc
 
 
@@ -170,7 +251,7 @@ def canh_to_dsk(n, canh, vo_huong=True):
 
 
 #duyet do thi
-def hasPathMTK_DFS(matran, u,v):  #ma tran ke
+def hasPathMTK_DFS(matran, u,v):
     n = len(matran)
     visited = [False]*n
     
@@ -326,13 +407,40 @@ def Prim(dsk, start, n):
             break
     return cay_khung,total_weight
     
-    
+#7.2 thuật toán Kruskal
+def Kruskal(dsk,n):
+    edges = []
+    for u in range(n):
+        for v,w in dsk[u].toListTrongSo():
+            if(v>u):
+                edges.append((w,u,v-1))
+
+    edges.sort()
+
+    dsu = DSU(n)
+    cay_khung = []
+    total_weight = 0
+
+    for w,u,v in edges:
+        if(dsu.union(u,v)):
+            cay_khung.append((u+1,v+1,w))
+            total_weight+=w
+        if(len(cay_khung) == n-1):
+            break
+    return cay_khung,total_weight 
 
 
 
 
 
 
+
+dsk = []
+matran = []
+canh = []
+n = 0
+vo_huong = True
+check_trong_so = False
 
 
 
@@ -343,28 +451,35 @@ def Prim(dsk, start, n):
 
 #thay đổi 1: Thêm trọng số vào class danh sách liên kết và sửa các hàm để nhận trọng số trong vài trường hợp
 def main():
+    global dsk, matran,canh,n,vo_huong,check_trong_so
     while True:
-        print("\n===== CHUYỂN ĐỔI BIỂU DIỄN ĐỒ THỊ VÔ TRỌNG SỐ =====")
+        print("\n===== BIỂU DIỄN ĐỒ THỊ TRỌNG SỐ =====")
         #dồn các danh sách vào 1 lựa chọn và cho người dùng chọn
-        print("1. Nhập danh sách")
-        print("4. In ra chu trình euler")
-        print("5.Chu trinh hamilton")
-        print("6. Thoát")
+        print("1.Vẽ đồ thị")
+        print("2. Nhập danh sách")
+        print("4.Duyệt đồ thị theo các chiến lược: BFS & DFS")
+        print("5.Kiểm tra đồ thị 2 phía")
+        print("10. Thoát")
         choice = input("Chọn kiểu nhập: ")
 
-        if choice == '6':
+        if choice == '10':
             print("Thoát chương trình.")
             break
 
-        n = int(input("Nhập số đỉnh: "))
-        vo_huong = input("Đồ thị vô hướng? (y/n): ") == 'y'
-
         if choice == '1':
+            if canh == []:
+                print("Chưa có danh sách cạnh, hãy chuyển đổi hoặc nhập danh sách cạnh")
+            else:
+                veDSC(canh,n,vo_huong,check_trong_so)
+
+        if choice == '2':
             print("1. Nhập danh sách cạnh")
             print("2. Nhập ma trận kề")
             print("3. Nhập danh sách kề")
             choice_DanhSach = input("bạn muốn dùng danh sách nào ?")
             if choice_DanhSach =='1':
+                n = int(input("Nhập số đỉnh: "))
+                vo_huong = input("Đồ thị vô hướng? (y/n): ") == 'y'
                 check = input("Ma trận có trọng số không ? y/n")
                 m = int(input("Nhập số cạnh: "))
                 canh = []
@@ -373,16 +488,16 @@ def main():
                     for i in range(m):
                         u, v,w = map(int, input(f"Cạnh {i+1}: ").split())
                         canh.append((u,v,w))
+                    check_trong_so = True
                 else:
                     print("Nhập cạnh dạng: u v")
                     for i in range(m):
                         u, v = map(int, input(f"Cạnh {i+1}: ").split())
                         canh.append((u,v))
 
-                matran = canh_to_matran(n, canh, vo_huong)
-                dsk = canh_to_dsk(n, canh, vo_huong)
-
             elif choice_DanhSach == '2':
+                n = int(input("Nhập số đỉnh: "))
+                vo_huong = input("Đồ thị vô hướng? (y/n): ") == 'y'
                 print("Nhập ma trận kề (0 là không có cạnh, 1 là có cạnh):")
                 check = input("Ma trận có trọng số không ? y/n")
                 matran = []
@@ -393,11 +508,10 @@ def main():
                 for i in range(n):
                     row = list(map(int, input(f"Dòng {i+1}: ").split()))
                     matran.append(row)
-
-                canh = matran_to_canh(n, matran,check_trong_so, vo_huong)
-                dsk = matran_to_dsk(n, matran,check_trong_so)
-
+        
             elif choice_DanhSach == '3':
+                n = int(input("Nhập số đỉnh: "))
+                vo_huong = input("Đồ thị vô hướng? (y/n): ") == 'y'
                 dsk = [linkedlist() for _ in range(n)]
                 check = input("Ma trận có trọng số không ? y/n")
                 m = int(input("Nhap so canh:"))
@@ -416,42 +530,103 @@ def main():
                         if vo_huong:
                             dsk[v-1].themCuoi(u) 
                     check_trong_so = False
-                    
 
-                matran = dsk_to_matran(n, dsk,check_trong_so, vo_huong)
-                canh = dsk_to_canh(n, dsk,check_trong_so, vo_huong)
-        
+
+
         elif choice == '4':
-            if(dsk == None):
-                print("Ban chua nhap danh sach ke")
-            else:
-                start = int(input("Nhap dinh bat dau:"))
-                print(chuTrinhEuler(dsk,start,vo_huong))
-        
+            print("1.Ma trận kề")
+            print("2.Danh sách kề")
+            find_choice = input("bạn muốn chọn tìm kiếm trên ma trận nào?")
+            u = int(input("Chọn đỉnh bắt đầu"))
+            v = int(input("chọn đỉnh kết thúc"))
+            type_find = int(input("Bạn muốn tìm kiếm theo chiều sâu hay rộng(0 là chiều sâu, 1 là chiều rộng)"))
+            if find_choice == '1':
+                if matran == []:
+                    print("chưa có ma trận này")
+                else:
+                    if(type_find == 0):
+                        if(hasPathMTK_DFS(matran,u-1,v-1)):
+                            print(f"Có đường đi từ đỉnh {u} tới đỉnh {v}")
+                        else:
+                            print(f"không có đường đi từ đỉnh {u} tới đỉnh {v}")
+                    else:
+                        if(hasPathMTK_BFS(matran,u-1,v-1)):
+                            print(f"Có đường đi từ đỉnh {u} tới đỉnh {v}")
+                        else:
+                            print(f"không có đường đi từ đỉnh {u} tới đỉnh {v}")
+            elif find_choice == '2':
+                if dsk == []:
+                    print("chưa có danh sách kề")
+                else:
+                    if(type_find == 0):
+                        if(hasPathDSK_DFS(dsk,u-1,v-1)):
+                            print(f"Có đường đi từ đỉnh {u} tới đỉnh {v}")
+                        else:
+                            print(f"không có đường đi từ đỉnh {u} tới đỉnh {v}")
+                    else:
+                        if(hasPathDSK_BFS(dsk,u-1,v-1)):
+                            print(f"Có đường đi từ đỉnh {u} tới đỉnh {v}")
+                        else:
+                            print(f"không có đường đi từ đỉnh {u} tới đỉnh {v}")
+
+
+
         elif choice == '5':
-            if(matran == None):
-                print("ban chua nhap ma tran")
+            if dsk == []:
+                print("Chưa có danh sách kề, vui lòng chuyển đổi hoặc nhập danh sách kề")
             else:
-                start = int(input("Nhap dinh bat dau u-1 (neu la dinh 2 thi nhap 1):"))
-                chuTrinhHamilton(matran,start,vo_huong)
-            
-        
-        k = input("ban co muon in do thi ra khong (y/n): " )
-        
-        if k== 'y':
+                tam = checkBipartiesDSK(dsk,n)
+                if(tam == True):
+                    print("Đồ thị là đồ thị 2 phía")
+                else:
+                    print("Đồ thị không phải là đồ thị 2 phía")
 
-            print("\n>>> Ma trận kề:")
-            for row in matran:
-                print(row)
 
-            print("\n>>> Danh sách kề:")
-            for i in dsk:
-                i.hienThi()
-                
 
-            print("\n>>> Danh sách cạnh:")
-            for edge in canh:
-                print(*edge)
+        elif choice == '6':
+            print("1.danh sách cạnh->ma trận kề")
+            print("2.danh sách cạnh->danh sách kề")
+            print("3.ma trận kề->danh sách cạnh")
+            print("4.ma trận kề->danh sách kề")
+            print("5.danh sách kề->ma trận kề")
+            print("6.danh sách kề->danh sách cạnh")
+            chon = input("Bạn muốn đổi đồ thị nào sang nào ?")
+            if chon == '1':
+                if canh == []:
+                    print("chưa có danh sách cạnh, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    matran = canh_to_matran(n, canh, vo_huong)
+                    print("đã chuyển danh sách cạnh thành ma trận kề thành công")
+            elif chon == '2':
+                if canh == []:
+                    print("chưa có danh sách cạnh, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    dsk = canh_to_dsk(n, canh, vo_huong)
+                    print("đã chuyển danh sách cạnh thành danh sách kề thành công")
+            elif chon == '3':
+                if matran == []:
+                    print("chưa có ma trận kề, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    canh = matran_to_canh(n, matran,check_trong_so, vo_huong)
+                    print("đã chuyển ma trận kề thành danh sách cạnh thành công")
+            elif chon == '4':
+                if matran == []:
+                    print("chưa có ma trận kề, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    dsk = matran_to_dsk(n, matran,check_trong_so)
+                    print("đã chuyển ma trận kề thành danh sách kề thành công")
+            elif chon == '5':
+                if dsk == []:
+                    print("chưa có danh sách kề, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    matran = dsk_to_matran(n, dsk,check_trong_so, vo_huong)
+                    print("đã chuyển danh sách kề thành ma trận kề thành công")
+            elif chon == '6':
+                if dsk == []:
+                    print("chưa có danh sách kề, chọn đồ thị khác hoặc nhập danh sách cạnh")
+                else:
+                    canh = dsk_to_canh(n, dsk,check_trong_so, vo_huong)
+                    print("đã chuyển danh sách kề thành danh sách cạnh thành công")
 
         print("\n-----------------------------------------\n")
 
