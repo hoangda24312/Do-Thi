@@ -298,7 +298,37 @@ Thêm các cạnh từ đỉnh mới vào heap
 
 Lặp lại đến khi có đủ n-1 cạnh
 """
-def Prim(dsk):
+#start là đỉnh bắt đầu, n là số đỉnh
+def Prim(dsk, start, n):
+    visited = [False]*n
+    min_heap = []
+    cay_khung = []
+    total_weight = 0
+    egde_start = dsk[start-1].toListTrongSo()
+    visited[start-1] = True
+    #push start trước, và do danh sách lưu index 0 tới n-1 nên các đỉnh kề phải -1
+    for neighbor_v, weight in egde_start:
+        heapq.heappush(min_heap,(weight,start-1,neighbor_v-1))
+    while min_heap != []:
+        w,u,v = heapq.heappop(min_heap)
+        if(visited[v]):
+            continue
+        #nhận cạnh u->v
+        visited[v] = True
+        cay_khung.append((u+1,v+1,w))
+        total_weight+=weight
+        #tiếp theo push các cạnh kề của đỉnh kề vào heap
+        for x,w2 in dsk[v].toListTrongSo():
+            x-=1
+            if visited[x] != True:
+                heapq.heappush(min_heap,(w2,v,x))
+        if len(cay_khung) == n-1:
+            break
+    return cay_khung,total_weight
+    
+    
+
+
 
 
 
