@@ -125,6 +125,64 @@ def veDSC(canh, n, vo_huong=True, check_trong_so=False):
     plt.title("Trực quan hóa đồ thị")
     plt.show()
 
+def draw_graph(n, edges, vo_huong=True, selected_edges=None, title="Trực quan hóa đồ thị"):
+    """
+    Vẽ đồ thị với khả năng tô màu các cạnh đã chọn.
+    edges: danh sách cạnh ban đầu [(u, v, w), ...]
+    selected_edges: danh sách các cạnh đã được chọn cho MST (để tô màu khác).
+    """
+    if vo_huong:
+        G = nx.Graph()
+    else:
+        G = nx.DiGraph()
+
+    G.add_nodes_from(range(1, n + 1))
+
+    # Thêm tất cả các cạnh vào đồ thị
+    G.add_weighted_edges_from(edges)
+
+    # Lấy vị trí các nút
+    pos = nx.spring_layout(G) 
+
+    # Định nghĩa màu cho các cạnh
+    all_edges = list(G.edges(data=True))
+    edge_colors = ['gray'] * len(all_edges)
+    edge_widths = [1] * len(all_edges)
+    
+    selected_edge_list = [(u, v) for u, v, w in (selected_edges or [])]
+    
+    # Tô màu các cạnh đã chọn
+    for i, (u, v, data) in enumerate(all_edges):
+        if (u, v) in selected_edge_list or (v, u) in selected_edge_list:
+            edge_colors[i] = 'green'  # Cạnh đã chọn
+            edge_widths[i] = 3
+    
+    # Lấy nhãn trọng số
+    edge_labels = {(u, v): d['weight'] for u, v, d in all_edges if 'weight' in d}
+
+    # Vẽ nút và cạnh
+    plt.figure(figsize=(10, 7))
+    nx.draw(
+        G, pos, 
+        with_labels=True, 
+        node_color='skyblue', 
+        node_size=1500, 
+        font_size=12,
+        edge_color=edge_colors,
+        width=edge_widths
+    )
+
+    if edge_labels:
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red') 
+    
+    plt.title(title)
+    plt.show(block=False) # Sử dụng block=False để cho phép nhiều hình vẽ
+    plt.pause(1.5) 
+    plt.close() 
+
+
+
+
 #kiểm tra đồ thị có phải 2 phía không
 def checkBipartiesDSK(dsk, n):
     color = [-1]*n
@@ -400,7 +458,7 @@ Thêm các cạnh từ đỉnh mới vào heap
 Lặp lại đến khi có đủ n-1 cạnh
 """
 #start là đỉnh bắt đầu, n là số đỉnh
-def Prim(dsk, start, n):
+def Prim(dsk, start, n): #code mẫu, thuần thuật toán không có trực quan
     visited = [False]*n
     min_heap = []
     cay_khung = []
@@ -426,7 +484,67 @@ def Prim(dsk, start, n):
         if len(cay_khung) == n-1:
             break
     return cay_khung,total_weight
+#Phần trực quan hóa
+def Prim_visualize(dsk, start, n,vo_huong,check_trong_so):
+    if not check_trong_so:
+        print("Cần đồ thị có trọng số để chạy Prim.")
+        return [], 0
+    full_edges = dsk_to_canh(n, dsk, check_trong_so=True, vo_huong=vo_huong)
     
+    visited = [False]*n
+    min_heap = []
+    cay_khung = []
+    total_weight = 0
+    start_idx = start - 1
+
+    # Bắt đầu
+    draw_graph(n, full_edges, vo_huong, cay_khung, title=f"Prim: Bắt đầu từ đỉnh {start}")
+    
+    # Bước 1: Khởi tạo
+    egde_start = dsk[start_idx].toListTrongSo()
+    visited[start_idx] = True
+    for neighbor_v, weight in egde_start:
+        heapq.heappush(min_heap, (weight, start_idx, neighbor_v - 1))
+    
+    print(f"Đã thăm đỉnh {start}. Đã thêm các cạnh kề vào Min-Heap.")
+    draw_graph(n, full_edges, vo_huong, cay_khung, title=f"Prim: Đã thăm {start}")
+    
+    # Lặp lại đến khi cây khung hoàn thành
+    while min_heap and len(cay_khung) < n - 1:
+        w, u_idx, v_idx = heapq.heappop(min_heap)
+        
+        u_node, v_node = u_idx + 1, v_idx + 1
+        print(f"\nXét cạnh: ({u_node}, {v_node}) với trọng số {w}")
+
+        if visited[v_idx]:
+            print(f"Đỉnh {v_node} đã được thăm. Bỏ qua.")
+            continue
+            
+        # Nhận cạnh u->v
+        visited[v_idx] = True
+        cay_khung.append((u_node, v_node, w))
+        total_weight += w
+        
+        print(f"--> CHỌN CẠNH: ({u_node}, {v_node}), Trọng số: {w}. Tổng trọng số: {total_weight}")
+        draw_graph(n, full_edges, vo_huong, cay_khung, 
+                   title=f"Prim: Đã chọn ({u_node}, {v_node}). Tổng W: {total_weight}")
+
+        # Thêm các cạnh mới kề với đỉnh v_idx
+        for x, w2 in dsk[v_idx].toListTrongSo():
+            x_idx = x - 1
+            if not visited[x_idx]:
+                heapq.heappush(min_heap, (w2, v_idx, x_idx))
+                
+        print(f"Đã thêm các cạnh kề từ đỉnh {v_node} vào Min-Heap.")
+
+    if len(cay_khung) == n - 1:
+        print("\nHoàn thành Cây Khung Tối Thiểu (MST) bằng Prim.")
+    else:
+        print("\nKhông tìm thấy Cây Khung Tối Thiểu (MST). Đồ thị có thể không liên thông.")
+        
+    return cay_khung, total_weight
+
+
 #7.2 thuật toán Kruskal
 def Kruskal(dsk,n):
     edges = []
@@ -448,6 +566,61 @@ def Kruskal(dsk,n):
         if(len(cay_khung) == n-1):
             break
     return cay_khung,total_weight 
+
+#Phần trực quan hóa kruskal
+def Kruskal_visualize(dsk, n,vo_huong,check_trong_so):
+    if not check_trong_so:
+        print("Cần đồ thị có trọng số để chạy Kruskal.")
+        return [], 0
+    
+    edges = []
+    for u in range(n):
+        for v, w in dsk[u].toListTrongSo():
+            if vo_huong and u + 1 < v:
+                 edges.append((w, u, v - 1))
+            elif not vo_huong: # Với đồ thị có hướng, thêm tất cả
+                 edges.append((w, u, v - 1))
+                 
+    edges.sort()
+    full_edges = dsk_to_canh(n, dsk, check_trong_so=True, vo_huong=vo_huong)
+    
+    dsu = DSU(n)
+    cay_khung = []
+    total_weight = 0
+
+    # Bắt đầu
+    draw_graph(n, full_edges, vo_huong, cay_khung, title="Kruskal: Sắp xếp cạnh và bắt đầu")
+    
+    print(f"Tổng số cạnh đã sắp xếp: {len(edges)}")
+    
+    # 2. Xử lý các cạnh đã sắp xếp
+    for w, u_idx, v_idx in edges:
+        u_node, v_node = u_idx + 1, v_idx + 1
+        print(f"\nXét cạnh: ({u_node}, {v_node}) với trọng số {w}")
+        
+        # Kiểm tra xem cạnh có tạo thành chu trình không
+        if dsu.find(u_idx) != dsu.find(v_idx):
+            # Không tạo chu trình, CHỌN cạnh này
+            dsu.union(u_idx, v_idx)
+            cay_khung.append((u_node, v_node, w))
+            total_weight += w
+            print(f"--> CHỌN CẠNH: ({u_node}, {v_node}), Trọng số: {w}. Tổng trọng số: {total_weight}")
+            
+            draw_graph(n, full_edges, vo_huong, cay_khung, 
+                       title=f"Kruskal: Đã chọn ({u_node}, {v_node}). Tổng W: {total_weight}")
+            
+            if len(cay_khung) == n - 1:
+                break
+        else:
+            print(f"Cạnh ({u_node}, {v_node}) tạo thành chu trình. Bỏ qua.")
+
+    if len(cay_khung) == n - 1:
+        print("\nHoàn thành Cây Khung Tối Thiểu (MST) bằng Kruskal.")
+    else:
+        print("\nKhông tìm thấy Cây Khung Tối Thiểu (MST). Đồ thị có thể không liên thông.")
+
+    return cay_khung, total_weight
+
 
 
 
@@ -480,6 +653,8 @@ def main():
         print("3.Tìm đường đi ngắn nhất")
         print("4.Duyệt đồ thị theo các chiến lược: BFS & DFS")
         print("5.Kiểm tra đồ thị 2 phía")
+        print("6.Chuyển đổi qua lại giữa các đồ thị")
+        print("7.Trực quan hóa các thuật toán")
         print("10. Thoát")
         choice = input("Chọn kiểu nhập: ")
 
@@ -656,7 +831,33 @@ def main():
                 else:
                     canh = dsk_to_canh(n, dsk,check_trong_so, vo_huong)
                     print("đã chuyển danh sách kề thành danh sách cạnh thành công")
-
+        elif choice == '7':
+            print("1 Prim")
+            print("2 Kruskal")
+            print("3 Ford fulkerson")
+            print("4 Fleury")
+            print("5 Hierholzer")
+            thuat_toan = input("Bạn muốn chọn thuật toán nào")
+            if thuat_toan == '1':
+                if dsk == []:
+                    print("Chưa có Danh sách kề. Vui lòng nhập hoặc chuyển đổi sang Danh sách kề có trọng số.")
+                elif not check_trong_so:
+                    print("Thuật toán Prim và Kruskal yêu cầu đồ thị có trọng số. Vui lòng nhập lại đồ thị.")
+                else:
+                    start_node = int(input("Nhập đỉnh bắt đầu cho Prim (1 đến n): "))
+                    if 1 <= start_node <= n:
+                        mst, total_weight = Prim_visualize(dsk, start_node, n,vo_huong,check_trong_so)
+                        print(f"\nCây Khung Tối Thiểu (Prim): {mst}, Tổng trọng số: {total_weight}")
+                    else:
+                        print("Đỉnh bắt đầu không hợp lệ.")
+            elif thuat_toan == '2':
+                if dsk == []:
+                    print("Chưa có Danh sách kề. Vui lòng nhập hoặc chuyển đổi sang Danh sách kề có trọng số.")
+                elif not check_trong_so:
+                    print("Thuật toán Prim và Kruskal yêu cầu đồ thị có trọng số. Vui lòng nhập lại đồ thị.")
+                else:
+                    mst, total_weight = Kruskal_visualize(dsk,n,vo_huong,check_trong_so)
+                    print(f"\nCây Khung Tối Thiểu (Kruskal): {mst}, Tổng trọng số: {total_weight}")
         print("\n-----------------------------------------\n")
 
 
