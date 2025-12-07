@@ -147,9 +147,29 @@ def checkBipartiesDSK(dsk, n):
                         return False
     return True
 
+#thuật toán tìm đường đi ngắn nhất dijkstra
+def Dijkstra(dsk, n,start):
+    start_idx = start-1
+    INF = float('inf')
+    dist = [INF]*n
+    prev = [None]*n
+
+    dist[start_idx] = 0
+    min_heap = [(0,start_idx)]
+    while min_heap:
+        d_u, u_idx = heapq.heappop(min_heap)
+        if d_u > dist[u_idx]:
+            continue
+        for v,weight in dsk[u_idx].toListTrongSo():
+            v_idx = v-1
+            new_dist = dist[u_idx]+weight
+            if new_dist < dist[v_idx]:
+                dist[v_idx] = new_dist
+                prev[v_idx] = u_idx
+                heapq.heappush(min_heap,(new_dist,v_idx))
+    return dist, prev
 
 
-#sua danh sach ke truoc
 
 
 def canh_to_matran(n, canh, vo_huong=True):
@@ -457,6 +477,7 @@ def main():
         #dồn các danh sách vào 1 lựa chọn và cho người dùng chọn
         print("1.Vẽ đồ thị")
         print("2. Nhập danh sách")
+        print("3.Tìm đường đi ngắn nhất")
         print("4.Duyệt đồ thị theo các chiến lược: BFS & DFS")
         print("5.Kiểm tra đồ thị 2 phía")
         print("10. Thoát")
@@ -531,6 +552,14 @@ def main():
                             dsk[v-1].themCuoi(u) 
                     check_trong_so = False
 
+        elif choice == '3':
+            if dsk == []:
+                print("Bạn chưa có danh sách kề, vui lòng chuyển đổi hoặc nhập")
+            else:
+                start = int(input("Nhập đỉnh bắt đầu"))
+                dist, prev = Dijkstra(dsk,n,start)
+                print(f"Đường đi ngắn nhất là",dist)
+                print(f"Đỉnh trước:",prev)
 
 
         elif choice == '4':
