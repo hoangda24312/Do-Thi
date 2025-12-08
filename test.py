@@ -177,11 +177,70 @@ def draw_graph(n, edges, vo_huong=True, selected_edges=None, title="Trực quan 
     
     plt.title(title)
     plt.show(block=False) # Sử dụng block=False để cho phép nhiều hình vẽ
-    plt.pause(1.5) 
+    plt.pause(4.5) 
     plt.close() 
 
+def drawFlowGraph(n, capacity_edges, flow_data, path_edges=None, title="Trực quan hóa Luồng"):
+    G = nx.DiGraph() # Luồng là đồ thị có hướng
+    G.add_nodes_from(range(1, n + 1))
 
+    # Xây dựng nhãn luồng và danh sách cạnh
+    edge_labels = {}
+    all_edges = []
+    
+    # Chuẩn hóa path_edges để dễ so sánh
+    path_set = set((u, v) for u, v, w in (path_edges or []))
 
+    for u, v, w in capacity_edges:
+        # Tìm luồng ròng (net flow)
+        flow = flow_data[u-1][v-1]
+        
+        # Đảm bảo luồng không vượt quá dung lượng
+        flow_value = int(round(flow))
+        if flow_value < 0:
+            flow_value = 0
+        
+        G.add_edge(u, v, capacity=w, flow=flow_value, label=f"{flow_value}/{w}")
+        edge_labels[(u, v)] = f"{flow_value}/{w}"
+        all_edges.append((u, v))
+
+    pos = nx.spring_layout(G) 
+
+    # Định nghĩa màu và độ dày cho các cạnh
+    edge_colors = []
+    edge_widths = []
+    
+    for u, v in all_edges:
+        is_path_edge = (u, v) in path_set
+        
+        if is_path_edge:
+            edge_colors.append('red') # Tô màu đường tăng luồng
+            edge_widths.append(3)
+        else:
+            edge_colors.append('gray')
+            edge_widths.append(1.5)
+            
+    # Vẽ
+    plt.figure(figsize=(10, 7))
+    nx.draw(
+        G, pos, 
+        with_labels=True, 
+        node_color='skyblue', 
+        node_size=1500, 
+        font_size=12,
+        edge_color=edge_colors,
+        width=edge_widths,
+        arrows=True
+    )
+
+    if edge_labels:
+        # Nhãn hiển thị Luồng/Dung lượng
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='darkgreen') 
+    
+    plt.title(title)
+    plt.show(block=False) 
+    plt.pause(4.5) 
+    plt.close()
 
 #kiểm tra đồ thị có phải 2 phía không
 def checkBipartiesDSK(dsk, n):
@@ -273,7 +332,7 @@ def dsk_to_matran(n, dsk,check_trong_so=False, vo_huong=True):
                         ma_tran[v-1][i] = 1
     return ma_tran
 
-def matran_to_canh(n, ma_tran,check_trong_so=False, vo_huong=True):
+def matran_to_canh(n, ma_tran,check_trong_so = True, vo_huong=True):
     canh = []
     if check_trong_so==True:
         for i in range(n):
@@ -630,12 +689,13 @@ def bfsPath(do_thi, s,t,parent,n):
     visited[s] = True
     parent[s] = -1
 
-    for i in range(n):
+    while queue:
         u = queue.popleft()
-        if(do_thi[u][i] >0 and visited[i != True]):
-            queue.append(i)
-            visited[i] = True
-            parent[i] = u
+        for i in range(n):
+            if(do_thi[u][i] >0 and visited[i] != True):
+                queue.append(i)
+                visited[i] = True
+                parent[i] = u
     
     return visited[t] #nếu đến được t thì có đồ thị tăng luồng
             
@@ -665,7 +725,64 @@ def fordFulkersen(matran,n,s_node, t_node):
     return max_flow
 
 
+def fordFulkersen_visualize(matran_goc, n, s_node, t_node):
+    s = s_node - 1
+    t = t_node - 1
 
+    thang_du = [row[:] for row in matran_goc] 
+    
+    luong_hien_tai = [[0] * n for _ in range(n)]
+    
+    max_flow = 0
+    parent = [0] * n 
+    
+    # Lấy danh sách cạnh ban đầu để vẽ nền
+    full_edges = matran_to_canh(n, matran_goc, check_trong_so, vo_huong=False) 
+
+    print("--- BẮT ĐẦU FORD-FULKERSON (EDMONDS-KARP) ---")
+    drawFlowGraph(n, full_edges, luong_hien_tai, title=f"Luồng ban đầu (F=0)")
+
+    # Vòng lặp chính
+    vong_lap = 1
+    while(bfsPath(thang_du, s, t, parent, n)):
+        path_flow = float('inf')
+    
+        v = t
+        path_edges = [] # Lưu các cạnh trên đường tăng luồng để trực quan hóa
+        while v != s:
+            u = parent[v]
+            path_flow = min(path_flow, thang_du[u][v])
+            path_edges.append((u + 1, v + 1, matran_goc[u][v])) 
+            v = u
+        path_edges.reverse() 
+
+        max_flow += path_flow
+        
+        v = t
+        while v != s:
+            u = parent[v]
+        
+            thang_du[u][v] -= path_flow
+            thang_du[v][u] += path_flow
+            if matran_goc[u][v] > 0:
+                luong_hien_tai[u][v] += path_flow
+            elif matran_goc[v][u] > 0:
+                luong_hien_tai[v][u] -= path_flow
+                
+            v = u
+            
+        print(f"\n--- Vòng {vong_lap} ---")
+        print(f"Đường tăng luồng: {path_edges} (W: {path_flow})")
+        print(f"Luồng cực đại mới: F = {max_flow}")
+        # 5. Trực quan hóa
+        # Gọi hàm vẽ. Giả định draw_graph có thể chấp nhận nhãn là chuỗi
+        drawFlowGraph(n, full_edges, luong_hien_tai,path_edges, title=f"Vòng {vong_lap}: F={max_flow}")
+
+        vong_lap += 1
+        
+    print(f"\n--- KẾT THÚC ---")
+    print(f"Luồng Cực Đại là: {max_flow}")
+    return max_flow
 
 
 
@@ -899,6 +1016,14 @@ def main():
                 else:
                     mst, total_weight = Kruskal_visualize(dsk,n,vo_huong,check_trong_so)
                     print(f"\nCây Khung Tối Thiểu (Kruskal): {mst}, Tổng trọng số: {total_weight}")
+            elif thuat_toan =='3':
+                if matran == []:
+                    print("Chưa có ma trận kề, hãy nhập hoặc chuyển đổi ma trận kề")
+                elif check_trong_so == False:
+                    print("Đồ thị cần có trọng số,vui lòng nhập lại")
+                else:
+                    s,t = map(int,input("Nhập đỉnh bắt đầu và kết thúc (s và t): ").split())
+                    fordFulkersen_visualize(matran,n,s,t)
         print("\n-----------------------------------------\n")
 
 
