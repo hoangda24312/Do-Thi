@@ -784,6 +784,80 @@ def fordFulkersen_visualize(matran_goc, n, s_node, t_node):
     print(f"Luồng Cực Đại là: {max_flow}")
     return max_flow
 
+#7.3 Thuật toán Fleury
+def isEuler(dsk, n):
+    node = []
+    for i in range(n):
+        bac = len(dsk[i].toList())
+        if bac % 2 != 0:
+            node.append(i+1)
+    start_node = None
+    if len(node) == 0:
+        print("Có chu trình euler")
+        start_node = 1
+    elif len(node) <=2:
+        print("Có đường đi Euler, không có chu trình")
+        start_node = node[0]
+    else:
+        print(f"Đồ thị có {len(node)} bậc lẻ, không có chu trình/đường đi euler")
+        return None, None
+    return start_node, len(node)
+
+def is_bridge(dsk_temp, u,v,vo_huong):
+    if(len(dsk[u].toList()) == 1 or len(dsk[v].toList()) == 1):
+        return False
+    matran_temp = dsk_to_matran(n,dsk_temp,check_trong_so=False,vo_huong=vo_huong)
+    matran_temp[u][v] = 0
+    if vo_huong:
+        matran_temp[v][u] = 0
+    still_connected = hasPathDSK_DFS(matran_temp,u,v)
+    return not still_connected
+
+def Fleury(dsk,n,vo_huong = True):
+    start_node, num = isEuler(dsk,n)
+    if start_node == None:
+        return []
+    #sao chép dsk qua temp để không xóa cạnh dsk
+    dsk_temp = [linkedlist() for _ in range(n)]
+    for i in range(n):
+        for val, w in dsk[i].toListTrongSo():
+            dsk_temp[i].themCuoi(val,w)
+    euler_path = [start_node]
+    current = start_node
+    while True:
+        current_idx = current-1
+        possible_neighbor = dsk_temp[current_idx].toList()
+        if not possible_neighbor: #dừng khi không còn cạnh kề
+            break
+        # Tìm cạnh (current_node, v) để chọn
+        for neightbor in possible_neighbor:
+            #Quy tắc 1: nếu chỉ còn 1 cạnh duy nhất thì phải chọn nó
+            if(len(possible_neighbor) == 1):
+                selected_neighbor = neightbor
+                break
+            #Quy tắc 2: không chọn cầu trừ khi nó là duy nhất
+            if not is_bridge(dsk_temp,current_idx,neightbor,vo_huong):
+                selected_neighbor = neightbor
+                break
+        # Nếu đã duyệt qua hết mà không tìm được cạnh không phải cầu, thì phải chọn cầu (cạnh còn lại)
+        if selected_neighbor is None:
+            selected_neighbor = possible_neighbor[0]
+        next_node = selected_neighbor
+        dsk_temp[current_idx].xoaNode(next_node)
+        if vo_huong:
+            dsk_temp[next_node-1].xoaNode(current)
+        euler_path.append(next_node)
+        current = next_node
+    print("\n--- THUẬT TOÁN FLEURY ---")
+    print(f"Chu trình/Đường đi Euler: {euler_path}")
+    return euler_path
+
+
+        
+
+
+
+
 
 
 dsk = []
