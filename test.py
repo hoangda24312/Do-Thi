@@ -265,12 +265,12 @@ def dsk_to_matran(n, dsk,check_trong_so=False, vo_huong=True):
                     ma_tran[i][v-1] = w
                     if vo_huong:
                         ma_tran[v-1][i] = w
-
-    for i in range(n):
-        for v in dsk[i].toList():
-                ma_tran[i][v-1] = 1
-                if vo_huong:
-                    ma_tran[v-1][i] = 1
+    else:
+        for i in range(n):
+            for v in dsk[i].toList():
+                    ma_tran[i][v-1] = 1
+                    if vo_huong:
+                        ma_tran[v-1][i] = 1
     return ma_tran
 
 def matran_to_canh(n, ma_tran,check_trong_so=False, vo_huong=True):
@@ -622,6 +622,47 @@ def Kruskal_visualize(dsk, n,vo_huong,check_trong_so):
     return cay_khung, total_weight
 
 
+#7.3 Ford Fulkersen
+
+def bfsPath(do_thi, s,t,parent,n):
+    visited = [False]*n
+    queue = deque([s])
+    visited[s] = True
+    parent[s] = -1
+
+    for i in range(n):
+        u = queue.popleft()
+        if(do_thi[u][i] >0 and visited[i != True]):
+            queue.append(i)
+            visited[i] = True
+            parent[i] = u
+    
+    return visited[t] #nếu đến được t thì có đồ thị tăng luồng
+            
+
+
+
+def fordFulkersen(matran,n,s_node, t_node):
+    s = s_node - 1
+    t = t_node - 1
+    thang_du = matran
+    max_flow = 0 #luồng cực đại
+    parent = [0]*n #mảng lưu đường đi
+    while(bfsPath(thang_du,s,t,parent,n)):
+        path_flow = float('inf')
+        v = t
+        while v !=s: #duyệt ngược từ t về s
+            u = parent[v]
+            path_flow = min(path_flow, thang_du[u][v])
+            v = u
+        max_flow+=path_flow
+        v = t
+        while v != s:
+            u = parent[v]
+            thang_du[u][v] -= path_flow
+            thang_du[v][u] += path_flow
+            v= u
+    return max_flow
 
 
 
