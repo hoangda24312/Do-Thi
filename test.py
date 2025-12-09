@@ -60,14 +60,15 @@ class linkedlist:
     def xoaNode(self, val):
         if self.head == None:
             return
-        while self.head != None and self.head == val:
+        if self.head.value == val:
             self.head = self.head.next
+            return
         p = self.head
-        while(p!=None and p.next != None):
+        while(p.next != None):
             if(p.next.value == val):
                 q= p.next
                 p.next = q.next
-                del q
+                return
             else:
                 p = p.next
 #####
@@ -94,6 +95,8 @@ class DSU:
             self.rank[xr]+=1
         return True
 ######
+
+
 def veDSC(canh, n, vo_huong=True, check_trong_so=False):
     if vo_huong:
         G = nx.Graph()
@@ -176,10 +179,12 @@ def draw_graph(n, edges, vo_huong=True, selected_edges=None, title="Trực quan 
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red') 
     
     plt.title(title)
+    fig = plt.gcf()
     plt.show(block=False) # Sử dụng block=False để cho phép nhiều hình vẽ
-    plt.pause(4.5) 
-    plt.close() 
+    plt.pause(1.5) 
+    plt.close(fig) 
 
+#ve co luong
 def drawFlowGraph(n, capacity_edges, flow_data, path_edges=None, title="Trực quan hóa Luồng"):
     G = nx.DiGraph() # Luồng là đồ thị có hướng
     G.add_nodes_from(range(1, n + 1))
@@ -378,6 +383,7 @@ def canh_to_dsk(n, canh, vo_huong=True):
     for edge in canh:
         if len(edge) == 2:
             u, v = edge
+            w = 1
         else:
             u, v, w = edge
         dsk[u-1].themCuoi(v,w)
@@ -804,13 +810,13 @@ def isEuler(dsk, n):
     return start_node, len(node)
 
 def is_bridge(dsk_temp, u,v,vo_huong):
-    if(len(dsk[u].toList()) == 1 or len(dsk[v].toList()) == 1):
+    if(len(dsk[u].toList()) == 1 or len(dsk[v-1].toList()) == 1):
         return False
     matran_temp = dsk_to_matran(n,dsk_temp,check_trong_so=False,vo_huong=vo_huong)
-    matran_temp[u][v] = 0
+    matran_temp[u][v-1] = 0
     if vo_huong:
-        matran_temp[v][u] = 0
-    still_connected = hasPathDSK_DFS(matran_temp,u,v)
+        matran_temp[v-1][u] = 0
+    still_connected = hasPathMTK_DFS(matran_temp,u,v-1)
     return not still_connected
 
 def Fleury(dsk,n,vo_huong = True):
@@ -852,9 +858,223 @@ def Fleury(dsk,n,vo_huong = True):
     print(f"Chu trình/Đường đi Euler: {euler_path}")
     return euler_path
 
-
+def Fleury_visualize(dsk, n, vo_huong = True):
+    initial_edges = dsk_to_canh(n, dsk, check_trong_so=True, vo_huong=vo_huong) 
+    
+    print("\n--- BẮT ĐẦU THUẬT TOÁN FLEURY VÀ TRỰC QUAN HÓA ---")
+    draw_graph(n, initial_edges, vo_huong, selected_edges=[], title="BƯỚC 0: Đồ thị ban đầu")
+    
+    # 1. Kiểm tra điều kiện Euler
+    start_node, num = isEuler(dsk,n)
+    if start_node == None:
+        print("Không có chu trình/đường đi Euler để thực hiện thuật toán Fleury.")
+        return []
         
+    print(f"Bắt đầu từ nút: {start_node}")
+    
+    # 2. Chuẩn bị (Tạo bản sao)
+    dsk_temp = [linkedlist() for _ in range(n)]
+    for i in range(n):
+        for val, w in dsk[i].toListTrongSo():
+            dsk_temp[i].themCuoi(val,w)
+            
+    euler_path = [start_node]
+    current = start_node
+    
+    # Danh sách các cạnh đã chọn để tô màu
+    selected_edges = []
+    step = 1
 
+    while True:
+        current_idx = current-1
+        possible_neighbor = dsk_temp[current_idx].toList()
+        
+        if not possible_neighbor: # Dừng khi không còn cạnh kề
+            break
+            
+        selected_neighbor = None
+        
+        # Tìm cạnh (current_node, v) để chọn
+        for neightbor in possible_neighbor:
+            # Quy tắc 1: nếu chỉ còn 1 cạnh duy nhất thì phải chọn nó
+            if(len(possible_neighbor) == 1):
+                selected_neighbor = neightbor
+                break
+            # Quy tắc 2: không chọn cầu trừ khi nó là duy nhất
+            # Lưu ý: Hàm is_bridge cần được cập nhật để sử dụng dsk_temp, 
+            # nhưng giả định nó có thể hoạt động với các biến toàn cục hoặc 
+            # được điều chỉnh trong ngữ cảnh thực tế.
+            if not is_bridge(dsk_temp, current_idx, neightbor, vo_huong): 
+                selected_neighbor = neightbor
+                break
+
+        # Nếu đã duyệt qua hết mà không tìm được cạnh không phải cầu, thì phải chọn cầu
+        if selected_neighbor is None:
+            selected_neighbor = possible_neighbor[0] # Chọn cạnh đầu tiên (là cầu)
+            
+        next_node = selected_neighbor
+        
+        # 4. Trực quan hóa bước hiện tại
+        edge_to_add = (current, next_node, 1) # Sử dụng trọng số giả là 1
+        
+        # Xử lý đồ thị vô hướng: thêm cạnh theo thứ tự (u,v) đã sắp xếp để vẽ
+        if vo_huong:
+            u, v = sorted((current, next_node))
+            edge_to_add = (u, v, 1)
+        
+        selected_edges.append(edge_to_add)
+
+        title = f"BƯỚC {step}: Chọn cạnh ({current} -> {next_node})"
+        draw_graph(n, initial_edges, vo_huong, selected_edges, title)
+        step += 1
+        
+        # 5. Xóa cạnh
+        dsk_temp[current_idx].xoaNode(next_node)
+        if vo_huong:
+            dsk_temp[next_node-1].xoaNode(current)
+            
+        # 6. Cập nhật đường đi và nút hiện tại
+        euler_path.append(next_node)
+        current = next_node
+
+    print("\n--- KẾT THÚC THUẬT TOÁN FLEURY ---")
+    print(f"Chu trình/Đường đi Euler: {euler_path}")
+    
+    # Trực quan hóa kết quả cuối cùng
+    draw_graph(n, initial_edges, vo_huong, selected_edges, title="KẾT QUẢ CUỐI CÙNG: Đường đi Euler")
+
+    return euler_path
+        
+#7.5 Thuật toán Hierholzer
+#khác với euler ở chỗ không cần kiểm tra cầu mà chọn các chu trình con sau đó hợp nhất
+def find_sub_cycle(u, dsk_temp, vo_huong, path_so_far):
+    """
+    Tìm chu trình con bắt đầu và kết thúc tại nút u.
+    Trả về chu trình con (list) và danh sách các cạnh được duyệt (list of tuples).
+    """
+    cycle = [u]
+    visited_edges_in_cycle = []
+    current = u
+    
+    while True:
+        current_idx = current - 1
+        possible_neighbor = dsk_temp[current_idx].toList()
+        
+        if not possible_neighbor:
+            # Không còn cạnh kề, chu trình không được hoàn thành (lỗi logic nếu là đồ thị Euler)
+            # Dừng lại nếu không thể đi tiếp
+            break 
+            
+        next_node = possible_neighbor[0] # Chỉ cần chọn cạnh đầu tiên
+        
+        # Ghi nhận cạnh được chọn
+        u_edge, v_edge = current, next_node
+        if vo_huong:
+            u_edge, v_edge = tuple(sorted((current, next_node)))
+        
+        # Xóa cạnh
+        dsk_temp[current_idx].xoaNode(next_node)
+        if vo_huong:
+            dsk_temp[next_node - 1].xoaNode(current)
+            
+        cycle.append(next_node)
+        visited_edges_in_cycle.append((u_edge, v_edge, 1))
+
+        current = next_node
+        
+        if current == u:
+            # Chu trình đã hoàn thành
+            break 
+
+    return cycle, visited_edges_in_cycle
+
+def Hierholzer_visualize(dsk, n, vo_huong = True):
+    initial_edges = dsk_to_canh(n, dsk, check_trong_so=True,vo_huong=vo_huong) 
+    print("\n--- BẮT ĐẦU THUẬT TOÁN HIERHOLZER VÀ TRỰC QUAN HÓA ---")
+    draw_graph(n, initial_edges, vo_huong, selected_edges=[], title="BƯỚC 0: Đồ thị ban đầu")
+    
+    # 1. Kiểm tra điều kiện Euler và tìm nút bắt đầu
+    start_node, num = isEuler(dsk, n)
+    if start_node is None:
+        print("Không có chu trình/đường đi Euler để thực hiện thuật toán Hierholzer.")
+        return []
+        
+    print(f"Bắt đầu từ nút: {start_node}")
+    
+    # 2. Chuẩn bị (Tạo bản sao)
+    dsk_temp = [linkedlist() for _ in range(n)]
+    for i in range(n):
+        for val, w in dsk[i].toListTrongSo():
+            dsk_temp[i].themCuoi(val, w)
+            
+    # Khởi tạo đường đi Euler (chu trình ban đầu)
+    euler_path = []
+    
+    # Sử dụng stack để lưu trữ các nút cần duyệt
+    stack = [start_node]
+    
+    # Danh sách các cạnh đã chọn để tô màu (toàn bộ đường đi Euler)
+    selected_edges = []
+    step = 1
+    while stack:
+        u = stack[-1] # Lấy nút trên cùng của stack
+        current_idx = u - 1
+        
+        # Nếu nút u vẫn còn cạnh kề
+        if dsk_temp[current_idx].toList():
+            
+            # Chọn cạnh đầu tiên (v)
+            v = dsk_temp[current_idx].toList()[0] 
+            
+            # Ghi nhận cạnh được chọn
+            u_edge, v_edge = u, v
+            if vo_huong:
+                u_edge, v_edge = tuple(sorted((u, v)))
+            edge_to_add = (u_edge, v_edge, 1)
+
+            # --- TRỰC QUAN HÓA (Tìm kiếm chu trình con) ---
+            print(f"BƯỚC {step}: Từ nút {u}, chọn cạnh ({u} -> {v})")
+            
+            # Trực quan hóa bước tìm kiếm
+            temp_selected_edges = list(selected_edges)
+            #đầu tiên tạo bản sao xong sau đó mới thêm cạnh mới vào để trực quan hóa nhằm không phá cấu trúc
+            temp_selected_edges.append(edge_to_add)
+            
+            title = f"BƯỚC {step}: Tìm kiếm chu trình con từ {u} (Chọn cạnh {u} -> {v})"
+            draw_graph(n, initial_edges, vo_huong, temp_selected_edges, title)
+            step += 1
+            
+            # Xóa cạnh
+            dsk_temp[current_idx].xoaNode(v)
+            if vo_huong:
+                dsk_temp[v - 1].xoaNode(u)
+
+            stack.append(v)
+            selected_edges.append(edge_to_add)
+
+        else:
+            # Nếu nút u không còn cạnh kề: Đây là nút cuối cùng của một chu trình con.
+            # Pop nút này và thêm vào đường đi Euler.
+            u = stack.pop()
+            euler_path.append(u)
+            
+            # --- TRỰC QUAN HÓA (Hoàn thành chu trình con) ---
+            if len(euler_path) > 1:
+                print(f"BƯỚC {step}: Hoàn thành chu trình con/Ghi nhận nút {u}. Đường đi hiện tại: {euler_path}")
+                title = f"BƯỚC {step}: Hoàn thành đoạn đường đi tại nút {u}"
+                draw_graph(n, initial_edges, vo_huong, selected_edges, title)
+                step += 1
+            
+    # Đảo ngược đường đi vì các nút được pop theo thứ tự ngược
+    euler_path.reverse()
+    
+    print("\n--- KẾT THÚC THUẬT TOÁN HIERHOLZER ---")
+    print(f"Chu trình/Đường đi Euler: {euler_path}")
+    
+    # Trực quan hóa kết quả cuối cùng
+    draw_graph(n, initial_edges, vo_huong, selected_edges, title="KẾT QUẢ CUỐI CÙNG: Đường đi Euler")
+
+    return euler_path
 
 
 
@@ -1098,6 +1318,20 @@ def main():
                 else:
                     s,t = map(int,input("Nhập đỉnh bắt đầu và kết thúc (s và t): ").split())
                     fordFulkersen_visualize(matran,n,s,t)
+            elif thuat_toan == '4':
+                if dsk == []:
+                    print("Chưa có Danh sách kề. Vui lòng nhập hoặc chuyển đổi sang Danh sách kề")
+                else:
+                    path = Fleury_visualize(dsk,n,vo_huong)
+                    print(f"Vậy chu trình euler/đường đi euler là: {path}")
+            elif thuat_toan == '5':
+                if dsk == []:
+                    print("Chưa có Danh sách kề. Vui lòng nhập hoặc chuyển đổi sang Danh sách kề")
+                else:
+                    path = Hierholzer_visualize(dsk,n,vo_huong)
+                    print(f"vậy chu trình euler/đường đi euler là: {path}")
+
+
         print("\n-----------------------------------------\n")
 
 
