@@ -2,7 +2,8 @@ from collections import deque
 import heapq
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import pickle
+import os
 
 class Node:
     def __init__(self,val,W = 0):
@@ -95,6 +96,154 @@ class DSU:
             self.rank[xr]+=1
         return True
 ######
+
+def saveGraphState(n, vo_huong, check_trong_so, dsk, matran, canh, filename="graph_state.txt"):
+    current_data = []
+    data_type = 0 # 0: None, 1: DSK, 2: Matran, 3: Canh
+    
+    if canh:
+        # Ưu tiên Danh sách Cạnh (vì nó là gốc)
+        current_data = canh
+        data_type = 3
+    elif dsk:
+        # Chuyển DSK sang Danh sách Cạnh để lưu trữ thống nhất
+        current_data = dsk_to_canh(n, dsk, check_trong_so, vo_huong)
+        data_type = 1
+    elif matran:
+        # Chuyển Ma trận sang Danh sách Cạnh
+        current_data = matran_to_canh(n, matran, check_trong_so, vo_huong)
+        data_type = 2
+    
+    if data_type == 0:
+        print("Không có dữ liệu đồ thị nào để lưu.")
+        return
+
+    # 2. Ghi ra file TXT
+    try:
+        with open(filename, 'w') as f:
+            # 1/0 cho True/False, data_type xác định loại gốc (1=DSK, 2=Ma trận, 3=Cạnh)
+            f.write(f"{n} {int(vo_huong)} {int(check_trong_so)} {data_type}\n")
+            f.write(f"{len(current_data)}\n")
+            
+            for u, v, *w in current_data:
+                # Ghi u v w nếu có trọng số, u v nếu không có trọng số
+                weight_str = f" {w[0]}" if w and w[0] is not None else ""
+                if not check_trong_so and len(w) == 1: # Xử lý trường hợp không trọng số
+                     f.write(f"{u} {v}\n")
+                elif check_trong_so and w: # Xử lý trường hợp có trọng số
+                     f.write(f"{u} {v} {w[0]}\n")
+                else: # Mặc định (nếu có lỗi trong w, ghi u v)
+                    f.write(f"{u} {v}\n")
+            
+        print(f"Đã lưu trạng thái đồ thị ({data_type}: {n} đỉnh, {len(current_data)} cạnh) thành công vào '{filename}'.")
+        
+    except Exception as e:
+        print(f"Lỗi khi lưu trạng thái đồ thị: {e}")
+
+
+def loadGraphState(filename="graph_state.txt"):
+    if not os.path.exists(filename):
+        print(f"Không tìm thấy tệp lưu trữ '{filename}'.")
+        return 0, True, False, [], [], [] 
+        
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            if not lines:
+                return 0, True, False, [], [], []
+            
+            try:
+                n, vo_huong_int, check_trong_so_int, data_type = map(int, lines[0].strip().split())
+                vo_huong = bool(vo_huong_int)
+                check_trong_so = bool(check_trong_so_int)
+                data_type = int(data_type)
+            except ValueError:
+                print("Lỗi định dạng Dòng 1.")
+                return 0, True, False, [], [], []
+
+    
+        loaded_matran = []
+        start_line = 1
+    
+        if data_type == 2: # Tải Ma trận Kề
+            print("Tải Ma trận Kề...")
+            for i in range(n):
+                # Đọc n dòng tiếp theo
+                row = list(map(int, lines[start_line + i].strip().split()))
+                loaded_matran.append(row)
+                
+            # Tái tạo DSK và Cạnh từ Ma trận Kề đã tải
+            dsk_temp = matran_to_dsk(n, loaded_matran, check_trong_so)
+            canh_temp = matran_to_canh(n, loaded_matran, check_trong_so, vo_huong)
+            matran_out = loaded_matran
+            dsk_out = dsk_temp
+            canh_out = canh_temp
+
+        elif data_type == 1: # Tải Danh sách Kề (DSK)
+            print("Tải Danh sách Kề...")
+            dsk_temp = [linkedlist() for _ in range(n)]
+            
+            for i in range(n):
+                # Đọc n dòng tiếp theo
+                line_data = lines[start_line + i].strip().split()
+                if not line_data:
+                    continue
+                    
+                # Chuyển đổi DSK thô sang format linkedlist
+                data = list(map(int, line_data))
+                
+                # Đảm bảo dữ liệu kề luôn là cặp (đỉnh, trọng số)
+                if check_trong_so:
+                    for j in range(0, len(data), 2):
+                        v, w = data[j], data[j+1]
+                        dsk_temp[i].themCuoi(v, w)
+                else:
+                    for v in data:
+                        dsk_temp[i].themCuoi(v)
+                        
+            # Tái tạo Ma trận và Cạnh từ DSK đã tải
+            matran_temp = dsk_to_matran(n, dsk_temp, check_trong_so, vo_huong)
+            canh_temp = dsk_to_canh(n, dsk_temp, check_trong_so, vo_huong)
+
+            dsk_out = dsk_temp
+            matran_out = matran_temp
+            canh_out = canh_temp
+            
+        elif data_type == 3: # Tải Danh sách Cạnh (Cấu trúc cũ)
+            print("Tải Danh sách Cạnh...")
+            num_edges = int(lines[start_line].strip())
+            loaded_canh = []
+            
+            for line in lines[start_line + 1: start_line + 1 + num_edges]:
+                parts = list(map(int, line.strip().split()))
+                # (Logic đọc u v w... giống như trước)
+                u, v = parts[0], parts[1]
+                w = parts[2] if len(parts) > 2 else None
+                
+                if check_trong_so:
+                    loaded_canh.append((u, v, w))
+                else:
+                    loaded_canh.append((u, v))
+                    
+            # Tái tạo DSK và Ma trận từ Cạnh đã tải
+            dsk_temp = canh_to_dsk(n, loaded_canh, vo_huong, check_trong_so)
+            matran_temp = canh_to_matran(n, loaded_canh, vo_huong, check_trong_so)
+            
+            dsk_out = dsk_temp
+            matran_out = matran_temp
+            canh_out = loaded_canh
+            
+        else:
+            print("Lỗi: data_type không hợp lệ.")
+            return 0, True, False, [], [], []
+
+
+        print(f"Đã tải và tái tạo trạng thái đồ thị thành công từ '{filename}'")
+        return n, vo_huong, check_trong_so, dsk_out, matran_out, canh_out  
+    except Exception as e:
+        print(f"Lỗi khi tải trạng thái đồ thị: {e}. Đang khởi tạo lại trạng thái.")
+        return 0, True, False, [], [], []
+####
 
 
 def veDSC(canh, n, vo_huong=True, check_trong_so=False):
@@ -1107,6 +1256,7 @@ def main():
         print("5.Kiểm tra đồ thị 2 phía")
         print("6.Chuyển đổi qua lại giữa các đồ thị")
         print("7.Trực quan hóa các thuật toán")
+        print("8.Save/load đồ thị")
         print("10. Thoát")
         choice = input("Chọn kiểu nhập: ")
 
@@ -1331,7 +1481,27 @@ def main():
                     path = Hierholzer_visualize(dsk,n,vo_huong)
                     print(f"vậy chu trình euler/đường đi euler là: {path}")
 
-
+        elif choice == '8':
+            print("1.Lưu đồ thị hiện tại")
+            print("2.Load đồ thị danh sách cạnh")
+            choice_load = input("Bạn muốn lưu hay load ?")
+            if choice_load == '1':
+                file_name = input("Nhập tên file.txt")
+                saveGraphState(n,vo_huong,check_trong_so,dsk,matran,canh,file_name)
+            elif choice_load =='2':
+                file_name = input("Nhập tên file.txt")
+                n_new, vo_huong_new, check_trong_so_new, dsk_new, matran_new, canh_new = loadGraphState(file_name)
+                if n_new != 0:
+                    n = n_new
+                    vo_huong = vo_huong_new
+                    check_trong_so = check_trong_so_new
+                    dsk = dsk_new
+                    matran = matran_new
+                    canh = canh_new
+                else:
+                    print("số đỉnh không hợp lệ hoặc đồ thị rỗng")
+            else: print("Lựa chọn không hợp lệ")
+        else:print("Lựa chọn không hợp lệ")   
         print("\n-----------------------------------------\n")
 
 
